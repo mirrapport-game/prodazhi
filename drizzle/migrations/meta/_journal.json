@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794247369730,
+      "tag": "0000_telegram_bot_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794248410105,
+      "tag": "0001_crm_and_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794249916404,
+      "tag": "0002_crm_mailing_cabinets",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794250094842,
+      "tag": "0003_vk_crm_contact_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794250194101,
+      "tag": "0004_crm_multichannel_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794250293087,
+      "tag": "0005_custom_crm_cabinets",
+      "breakpoints": true
+    }
+  ]
+}

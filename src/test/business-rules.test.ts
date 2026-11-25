@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest';
+import { addBand, addTask, DEPOSITS, PLANS, publishPost, repost, seed, settle, submitReport } from '@/lib/business/model';
+const before = Date.parse('2026-11-10T12:00:00+03:00');
+const demoTask = { id: 'seed-0', title: 'Написать пост', amount: 2000, source: 'Telegram', date: '2026-11-10', deadline: '18:00', status: 'todo' as const };
+const after = Date.parse('2026-11-11T00:01:00+03:00');
+describe('Business rules', () => {
+ it('supports exactly four deposit values', () => expect([...DEPOSITS]).toEqual([2000, 5000, 10000, 50000]));
+ it('creates three demo tasks with requested deposits', () => expect(seed(before).tasks.map(t => t.amount)).toEqual([2000, 5000, 10000]));
+ it('uses 990 and 4900 ruble monthly prices', () => { expect(PLANS.pro.price).toBe(990); expect(PLANS.business.price).toBe(4900); });
+ it('rejects reports shorter than 30 characters', () => expect(() => submitReport(seed(before), 'seed-0', 'x'.repeat(29), '', '', before)).toThrow());
+ it('accepts 30 characters and rewards exactly 10 points once', () => { const s = submitReport(seed(before), 'seed-0', 'x'.repeat(30), '', '', before); expect(s.points).toBe(260); expect(s.tasks[0]?.status).toBe('done'); expect(() => submitReport(s, 'seed-0', 'x'.repeat(30), '', '', before)).toThrow(); });
+ it('rejects a report after the deadline', () => expect(() => submitReport(seed(before), 'seed-0', 'x'.repeat(30), '', '', Date.parse('2026-11-10T18:01:00+03:00'))).toThrow());
+ it('burns all missed deposits totaling 17000 and transfers to AI fund', () => { const initial = seed(before); initial.band = []; const s = settle(initial, after); expect(s.burned).toBe(17000); expect(s.money).toBe(33000); expect(s.fund).toBe(17000); expect(settle(s, after)).toEqual(s); });
+ it('adds a 1000 penalty once for missed daily band post', () => { const initial = seed(before); initial.tasks = [{ ...demoTask, status: 'done' }]; const s = settle(initial, after); expect(s.money).toBe(49000); expect(s.fund).toBe(1000); expect(settle(s, after).money).toBe(49000); });
+ it('charges 50 points for repost with 10 cashback', () => expect(repost(seed(before)).points).toBe(210));
+ it('refuses repost without enough points', () => expect(() => repost({ ...seed(before), points: 49 })).toThrow());
+ it('rewards exactly 50 for confirmed publication and rejects duplicates', () => { const p = { id: 'post', date: '2026-11-10', expertId: 'expert-0', text: '', link: 'https://example.org/post', moderator: false, status: 'published' as const }; const s = publishPost(seed(before), p); expect(s.points).toBe(300); expect(() => publishPost(s, p)).toThrow(); });
+ it('limits free plan to one task daily', () => { const s = seed(before); s.tasks = [demoTask]; expect(() => addTask(s, { ...demoTask, id: 'new' })).toThrow(); });
+ it('does not assign tasks on weekends', () => { const s = seed(before); s.plan = 'pro'; expect(() => addTask(s, { ...demoTask, date: '2026-11-14' })).toThrow(); });
+ it('limits regular band to 20 and business band to 50', () => { const s = seed(before); s.band = Array.from({ length: 20 }, (_, i) => String(i)); expect(() => addBand(s, 'new')).toThrow(); expect(addBand({ ...s, plan: 'business' }, 'new').band).toHaveLength(21); s.band = Array.from({ length: 50 }, (_, i) => String(i)); expect(() => addBand({ ...s, plan: 'business' }, 'new')).toThrow(); });
+ it('honors the exact Moscow deadline burn mode', () => { const s = seed(before); s.settings.burnAt = 'deadline'; s.band = []; expect(settle(s, Date.parse('2026-11-10T18:00:01+03:00')).burned).toBe(2000); });
+ it('keeps pending human reports unaccepted and without participant rewards', () => { const s = submitReport({ ...seed(before), buddy: 'anna' }, 'seed-0', 'x'.repeat(30), '', '', before); expect(s.points).toBe(250); expect(s.tasks[0]?.status).toBe('pending'); });
+});
